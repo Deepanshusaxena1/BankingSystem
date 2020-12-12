@@ -39,6 +39,25 @@ class CustomerAPI(APIView):
         else:
             return generate_json_response(False, {}, serializer.errors, status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request):
+        try:
+            request_json = json.loads(request.body)
+        except JSONDecodeError:
+            return generate_json_response(False, {}, "Request body could not be parsed", status.HTTP_400_BAD_REQUEST)
+        try:
+            customer_id = request_json["customer_id"]
+        except KeyError:
+            return generate_json_response(False, {}, "customer_id is missing.", status.HTTP_400_BAD_REQUEST)
+
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            serializer = CustomerSerializer(customer, many=False)
+            customer.delete()
+            return generate_json_response(True, {"customer": serializer.data}, "Customer details deleted Successfully",
+                                          status.HTTP_200_OK)
+        except Customer.DoesNotExist:
+            return generate_json_response(False, {}, "No such customer found.", status.HTTP_404_NOT_FOUND)
+
 
 class AccountAPI(APIView):
     def get(self, request):
@@ -67,3 +86,23 @@ class AccountAPI(APIView):
                                           status.HTTP_201_CREATED)
         else:
             return generate_json_response(False, {}, serializer.errors, status.HTTP_400_BAD_REQUEST)
+
+
+class GetAccountBalanceAPI(APIView):
+    def get(self, request):
+        try:
+            request_json = json.loads(request.body)
+        except JSONDecodeError:
+            return generate_json_response(False, {}, "Request body could not be parsed", status.HTTP_400_BAD_REQUEST)
+        try:
+            account_number = request_json["account_number"]
+        except KeyError:
+            return generate_json_response(False, {}, "account_number is missing.", status.HTTP_400_BAD_REQUEST)
+
+        try:
+            account = Account.objects.get(account_number=account_number)
+            serializer = AccountSerializer(account, many=False)
+            return generate_json_response(True, {"account": account.current_amount}, "Account Balance fetched Successfully",
+                                          status.HTTP_200_OK)
+        except Account.DoesNotExist:
+            return generate_json_response(False, {}, "No such account found.", status.HTTP_404_NOT_FOUND)
